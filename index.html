@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>fluidmstr</title>
+<meta name="description" content="fluidmstr - openchrome, reverse-engineering Dying Light's CEngine 6">
+<style>
+:root{--bg:#0a2adc;--fg:#fff}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg)}
+body{font:18px/1.6 ui-monospace,"Cascadia Mono",Consolas,"Courier New",monospace;
+  text-shadow:2px 0 rgba(255,0,60,.6),-2px 0 rgba(0,230,255,.6);
+  animation:flicker 4s infinite;overflow-x:hidden}
+main{max-width:720px;margin:0 auto;padding:6vh 16px}
+nav{display:flex;flex-wrap:wrap;gap:8px 24px;margin-bottom:40px}
+a{color:var(--fg);text-decoration:none;border-bottom:1px dashed transparent}
+a:hover,a.on{border-bottom-color:var(--fg)}
+a.on::before{content:">_ "}
+h1{font-size:2em;margin:0 0 16px}
+h1::after,.cur::after{content:"_";animation:blink 1s steps(1) infinite}
+.dim{opacity:.7}
+section[hidden]{display:none}
+dl{margin:0;display:grid;grid-template-columns:max-content 1fr;gap:4px 24px}
+dt{opacity:.7}dd{margin:0}
+/* vhs overlays */
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:5;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px),
+  radial-gradient(ellipse at center,transparent 55%,rgba(0,0,40,.55))}
+body::after{content:"";position:fixed;left:0;right:0;height:80px;top:-80px;pointer-events:none;z-index:6;
+  background:linear-gradient(transparent,rgba(255,255,255,.08),transparent);animation:roll 7s linear infinite}
+#noise{position:fixed;inset:0;width:100%;height:100%;z-index:10;display:none}
+@keyframes blink{50%{opacity:0}}
+@keyframes roll{to{top:100%}}
+@keyframes flicker{0%,100%{opacity:1}92%{opacity:1}93%{opacity:.85}94%{opacity:1}97%{opacity:.92}}
+@media (prefers-reduced-motion:reduce){body,body::after,h1::after,.cur::after{animation:none}}
+</style>
+</head>
+<body>
+<main>
+  <nav>
+    <a href="#whoami">whoami</a>
+    <a href="#projects">projects</a>
+    <a href="#links">links</a>
+  </nav>
+
+  <section id="whoami">
+    <p class="dim">&gt;_ whoami</p>
+    <h1>fluidmstr</h1>
+    <dl>
+      <dt>age</dt><dd>xx</dd>
+      <dt>role</dt><dd>cant code. claude code does</dd>
+      <dt>fake loc</dt><dd>Sarajevo, Bosnia</dd>
+      <dt>real loc</dt><dd>idk im blind</dd>
+    </dl>
+  </section>
+
+  <section id="projects" hidden>
+    <p class="dim">&gt;_ ls projects/</p>
+    <h1>openchrome</h1>
+    <p>reverse-engineering Dying Light's engine (CEngine 6).</p>
+    <dl>
+      <dt>status</dt><dd>in development</dd>
+      <dt>other</dt><dd>nothing. only project</dd>
+    </dl>
+  </section>
+
+  <section id="links" hidden>
+    <p class="dim">&gt;_ cat links.txt</p>
+    <p><a href="#">github</a> <span class="dim">(todo)</span></p>
+    <p class="cur dim">&gt;</p>
+  </section>
+</main>
+
+<canvas id="noise"></canvas>
+
+<script>
+const pages=[...document.querySelectorAll("section")],
+  links=[...document.querySelectorAll("nav a")],
+  cv=document.getElementById("noise"),ctx=cv.getContext("2d"),
+  calm=matchMedia("(prefers-reduced-motion:reduce)").matches;
+let timer;
+
+function show(){
+  const id=location.hash.slice(1)||"whoami";
+  pages.forEach(p=>p.hidden=p.id!==id);
+  links.forEach(a=>a.classList.toggle("on",a.hash==="#"+id));
+}
+function noise(){
+  cv.width=innerWidth>>1;cv.height=innerHeight>>1; // half res = chunkier, cheaper
+  cv.style.display="block";
+  const t0=performance.now();
+  (function f(t){
+    const d=ctx.createImageData(cv.width,cv.height),b=d.data;
+    for(let i=0;i<b.length;i+=4)b[i]=b[i+1]=b[i+2]=Math.random()*255,b[i+3]=255;
+    ctx.putImageData(d,0,0);
+    if(t-t0<350)timer=requestAnimationFrame(f);else cv.style.display="none";
+  })(t0);
+}
+addEventListener("hashchange",()=>{
+  if(calm)return show();
+  cancelAnimationFrame(timer);noise();
+  setTimeout(show,150); // swap mid-burst
+});
+show();
+</script>
+</body>
+</html>
