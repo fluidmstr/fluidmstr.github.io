@@ -84,6 +84,15 @@ body::after{content:"";position:fixed;left:0;right:0;height:80px;top:-80px;point
   background:radial-gradient(circle 160px at var(--x,50%) var(--y,40%),transparent,rgba(0,0,0,.88) 100%)}
 .mh #dark{display:block}
 body.inv{filter:invert(1)}
+/* opensrc: HL2 / HEV suit - lambda, boot log, HUD, gravity-gun blocks */
+#lambda,#hud{display:none;position:fixed;pointer-events:none}
+.hl #lambda{display:block;z-index:-1;left:50%;top:50%;transform:translate(-50%,-50%);font-size:70vmin;line-height:1;opacity:.07;text-shadow:none}
+.hl #hud{display:flex;gap:12px;left:16px;bottom:34px;z-index:7}
+#hud span{border:1px solid var(--fg);padding:2px 10px;font-size:13px;background:#000}
+#hud b{font-size:26px;margin-left:8px}
+.boot{margin:0 0 16px;font:inherit;font-size:14px;line-height:1.4;opacity:.7;min-height:5.6em}
+.grab{touch-action:none;user-select:none;cursor:grab;position:relative;z-index:3;background:#000}
+.grab:active{cursor:grabbing}
 @media (prefers-reduced-motion:reduce){*,::before,::after{animation:none!important}}
 </style>
 </head>
@@ -138,13 +147,15 @@ body.inv{filter:invert(1)}
 
   <section id="opensrc" data-back="projects" hidden>
     <p class="dim">C:\FLUIDMSTR\PROJECTS&gt;type opensrc</p>
+    <pre class="boot" id="boot"></pre>
     <h1>opensrc</h1>
-    <p class="desc">opensrc is a planned from-scratch engine built to load and run Source-era game content, with a modern renderer that allows graphical upgrades beyond the original. Physics is planned on top of Jolt Physics.</p>
-    <dl>
+    <p class="desc grab">opensrc is a planned from-scratch engine built to load and run Source-era game content, with a modern renderer that allows graphical upgrades beyond the original. Physics is planned on top of Jolt Physics.</p>
+    <dl class="grab">
       <dt>status</dt><dd>planned</dd>
       <dt>repo</dt><dd>not published yet</dd>
     </dl>
-    <p class="legal dim">This project is not affiliated with, endorsed by, or sponsored by Valve Corporation. Source is a trademark of Valve. The project does not claim it as its own and does not distribute any Valve-made assets.</p>
+    <p class="legal dim grab">This project is not affiliated with, endorsed by, or sponsored by Valve Corporation. Source is a trademark of Valve. The project does not claim it as its own and does not distribute any Valve-made assets.</p>
+    <p class="dim" style="font-size:13px">tip: drag the blocks. gravity gun.</p>
     <nav class="menu"><a href="#projects">..</a></nav>
   </section>
 
@@ -169,6 +180,8 @@ body.inv{filter:invert(1)}
 <div id="hex"></div>
 <div id="lamp"></div>
 <div id="dark"></div>
+<div id="lambda">&lambda;</div>
+<div id="hud"><span>HEALTH<b id="hp">100</b></span><span>SUIT<b>100</b></span></div>
 <canvas id="noise"></canvas>
 
 <script>
@@ -176,7 +189,7 @@ const $=s=>document.querySelector(s),
   pages=[...document.querySelectorAll("section")],
   cv=$("#noise"),ctx=cv.getContext("2d"),
   calm=matchMedia("(prefers-reduced-motion:reduce)").matches,
-  fx={"manhunt-re":"mh",openchrome:"oc"},
+  fx={"manhunt-re":"mh",openchrome:"oc",opensrc:"hl"},
   scare=["HELP ME","HE SEES YOU","RUN","BEHIND YOU","DONT LOOK"];
 let timer,cur,sel=0;
 
@@ -189,6 +202,7 @@ function show(){
   pages.forEach(p=>p.hidden=p.id!==id);
   cur=$("#"+id);sel=0;mark();
   document.body.className=fx[id]||"";
+  if(id==="opensrc")hev();
 }
 function noise(){
   cv.width=innerWidth>>1;cv.height=innerHeight>>1; // half res = chunkier, cheaper
@@ -207,9 +221,52 @@ addEventListener("hashchange",()=>{
   setTimeout(show,150); // swap mid-burst
 });
 
+// opensrc: HEV boot log, blip, gravity-gun blocks
+let bt=0,ac,hp=100;
+function hev(){
+  hp=100;$("#hp").textContent=hp;
+  grabs.forEach(g=>g.reset());
+  const L=["HEV SUIT: SYSTEMS ONLINE","ATMOSPHERIC CONTAMINANTS: NONE","SOURCE CONTENT RUNTIME: NOT FOUND","PHYSICS: JOLT [LOADED]","RENDERER: UPGRADE PENDING"].join("
+"),
+    el=$("#boot"),id=++bt;let i=0;
+  el.textContent="";
+  (function f(){if(id===bt&&i<L.length){el.textContent=L.slice(0,++i);setTimeout(f,calm?0:25)}})();
+}
+function tick(){
+  if(!document.body.classList.contains("hl"))return;
+  ac=ac||new AudioContext();
+  const o=ac.createOscillator(),g=ac.createGain();
+  o.frequency.value=1400;g.gain.value=.04;o.connect(g).connect(ac.destination);
+  o.start();o.stop(ac.currentTime+.03);
+}
+const grabs=[...document.querySelectorAll(".grab")].map(el=>{
+  let x=0,y=0,vx=0,vy=0,drag=0,raf;
+  const put=()=>el.style.transform=`translate(${x}px,${y}px)`;
+  const g={reset(){cancelAnimationFrame(raf);x=y=0;put()}};
+  el.onpointerdown=e=>{drag=1;cancelAnimationFrame(raf);el.setPointerCapture(e.pointerId);vx=vy=0;e.preventDefault()};
+  el.onpointermove=e=>{if(drag){x+=e.movementX;y+=e.movementY;vx=e.movementX;vy=e.movementY;put()}};
+  el.onpointerup=()=>{
+    drag=0;
+    (function f(){
+      vy+=.8;x+=vx;y+=vy;put();
+      const b=el.getBoundingClientRect();let floor=0;
+      if(b.bottom>innerHeight){
+        y-=b.bottom-innerHeight;
+        if(vy>6){hp=Math.max(1,hp-3);$("#hp").textContent=hp} // impact = "damage"
+        vy*=-.45;vx*=.85;floor=1;
+      }
+      if(b.left<0)x-=b.left,vx*=-.5;
+      if(b.right>innerWidth)x-=b.right-innerWidth,vx*=-.5;
+      put();
+      if(!(floor&&Math.abs(vy)<2&&Math.abs(vx)<.3))raf=requestAnimationFrame(f);
+    })();
+  };
+  return g;
+});
+
 addEventListener("keydown",e=>{
   const k=e.key,n=items().length;
-  if(k==="ArrowDown"||k==="ArrowUp"){sel=(sel+(k==="ArrowDown"?1:-1)+n)%n;mark()}
+  if(k==="ArrowDown"||k==="ArrowUp"){sel=(sel+(k==="ArrowDown"?1:-1)+n)%n;mark();tick()}
   else if(k==="Enter")items()[sel].click();
   else if((k==="Escape"||k==="Backspace")&&cur.dataset.back)location.hash=cur.dataset.back;
   else return;
@@ -217,7 +274,7 @@ addEventListener("keydown",e=>{
 });
 addEventListener("mouseover",e=>{
   const i=items().indexOf(e.target.closest(".menu a"));
-  if(i>=0){sel=i;mark()}
+  if(i>=0&&i!==sel){sel=i;mark();tick()}
 });
 
 // openchrome: hex dump + inverting lamp
