@@ -226,8 +226,7 @@ let bt=0,ac,hp=100;
 function hev(){
   hp=100;$("#hp").textContent=hp;
   grabs.forEach(g=>g.reset());
-  const L=["HEV SUIT: SYSTEMS ONLINE","ATMOSPHERIC CONTAMINANTS: NONE","SOURCE CONTENT RUNTIME: NOT FOUND","PHYSICS: JOLT [LOADED]","RENDERER: UPGRADE PENDING"].join("
-"),
+  const L=["HEV SUIT: SYSTEMS ONLINE","ATMOSPHERIC CONTAMINANTS: NONE","SOURCE CONTENT RUNTIME: NOT FOUND","PHYSICS: JOLT [LOADED]","RENDERER: UPGRADE PENDING"].join("\n"),
     el=$("#boot"),id=++bt;let i=0;
   el.textContent="";
   (function f(){if(id===bt&&i<L.length){el.textContent=L.slice(0,++i);setTimeout(f,calm?0:25)}})();
